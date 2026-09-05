@@ -1,17 +1,12 @@
 package fraymus.app;
 
 import fraymus.core.SimulationClock;
-import fraymus.core.Component;
-import fraymus.core.Entity;
 import fraymus.core.World;
+import fraymus.renderer.java2d.DesktopWindow;
+import java.awt.GraphicsEnvironment;
+import java.util.Arrays;
 
-/**
- * Headless bootstrap for the renderer-independent FRAYMUS Core.
- *
- * <p>This deliberately exercises the same deterministic clock that future
- * renderer adapters and simulations will use, without pulling legacy OpenGL
- * dependencies into the core module.</p>
- */
+/** Command-line bootstrap for the desktop and headless FRAYMUS applications. */
 public final class FraymusApplication {
     private static final int DEFAULT_TICKS = 120;
 
@@ -19,12 +14,25 @@ public final class FraymusApplication {
     }
 
     public static void main(String[] args) {
-        int requestedTicks = parseRequestedTicks(args);
-        SimulationClock clock = new SimulationClock();
-        try (World world = new World()) {
-            Entity probe = world.addEntity(new Entity("Headless probe"));
-            probe.addComponent(new ConstantVelocity(3.0, -1.5));
+        if (Arrays.asList(args).contains("--desktop")) {
+            launchDesktop();
+            return;
+        }
+        runHeadless(parseRequestedTicks(args));
+    }
 
+    private static void launchDesktop() {
+        if (GraphicsEnvironment.isHeadless()) {
+            throw new IllegalStateException(
+                    "Desktop mode requires a graphical environment; use --headless on this machine");
+        }
+        DesktopWindow.launch();
+    }
+
+    private static void runHeadless(int requestedTicks) {
+        SimulationClock clock = new SimulationClock();
+        try (DemoWorld demo = DemoWorld.create()) {
+            World world = demo.world();
             for (int i = 0; i < requestedTicks; i++) {
                 clock.advance(clock.getFixedStepSeconds(), () -> world.step(clock.getFixedStepSeconds()));
             }
@@ -35,18 +43,17 @@ public final class FraymusApplication {
                     world.getEntities().size(),
                     clock.getTick(),
                     clock.getSimulationSeconds(),
-                    probe.getName(),
-                    probe.getTransform().getX(),
-                    probe.getTransform().getY(),
+                    demo.probe().getName(),
+                    demo.probe().getTransform().getX(),
+                    demo.probe().getTransform().getY(),
                     clock.getFixedStepSeconds());
         }
     }
 
     private static int parseRequestedTicks(String[] args) {
-        if (args.length == 0 || "--headless".equals(args[0])) {
+        if (args.length == 0 || (args.length == 1 && "--headless".equals(args[0]))) {
             return DEFAULT_TICKS;
         }
-
         if (args.length == 2 && "--ticks".equals(args[0])) {
             try {
                 int ticks = Integer.parseInt(args[1]);
@@ -58,24 +65,7 @@ public final class FraymusApplication {
                 throw new IllegalArgumentException("--ticks must be an integer", exception);
             }
         }
-
-        throw new IllegalArgumentException("Usage: java -jar fraymus.jar [--headless | --ticks N]");
-    }
-
-    private static final class ConstantVelocity extends Component {
-        private final double velocityX;
-        private final double velocityY;
-
-        private ConstantVelocity(double velocityX, double velocityY) {
-            this.velocityX = velocityX;
-            this.velocityY = velocityY;
-        }
-
-        @Override
-        protected void update(double fixedStepSeconds) {
-            getEntity().getTransform().translate(
-                    velocityX * fixedStepSeconds,
-                    velocityY * fixedStepSeconds);
-        }
+        throw new IllegalArgumentException(
+                "Usage: java -jar fraymus.jar [--desktop | --headless | --ticks N]");
     }
 }
