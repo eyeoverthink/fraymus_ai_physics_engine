@@ -13,6 +13,7 @@ public class Entity implements AutoCloseable {
     private final List<Component> components = new ArrayList<>();
     private long id;
     private World world;
+    private boolean started;
     private boolean closed;
 
     public Entity() {
@@ -44,6 +45,10 @@ public class Entity implements AutoCloseable {
         return world;
     }
 
+    public boolean isStarted() {
+        return started;
+    }
+
     public boolean isClosed() {
         return closed;
     }
@@ -52,6 +57,9 @@ public class Entity implements AutoCloseable {
         ensureOpen();
         Objects.requireNonNull(component, "component").attach(this);
         components.add(component);
+        if (world != null && world.isStarted()) {
+            component.startIfNeeded();
+        }
         return component;
     }
 
@@ -62,6 +70,16 @@ public class Entity implements AutoCloseable {
 
     public List<Component> getComponents() {
         return Collections.unmodifiableList(components);
+    }
+
+    public boolean removeComponent(Component component) {
+        Objects.requireNonNull(component, "component");
+        if (!components.remove(component)) {
+            return false;
+        }
+        component.close();
+        component.detach();
+        return true;
     }
 
     void attach(World owner, long assignedId) {
@@ -79,10 +97,20 @@ public class Entity implements AutoCloseable {
         }
     }
 
+    void startIfNeeded() {
+        ensureOpen();
+        started = true;
+        for (Component component : List.copyOf(components)) {
+            component.startIfNeeded();
+        }
+    }
+
     void update(double fixedStepSeconds) {
         ensureOpen();
         for (Component component : List.copyOf(components)) {
-            component.runUpdate(fixedStepSeconds);
+            if (components.contains(component)) {
+                component.runUpdate(fixedStepSeconds);
+            }
         }
     }
 
@@ -91,9 +119,13 @@ public class Entity implements AutoCloseable {
         if (closed) {
             return;
         }
+        if (world != null) {
+            world.removeEntity(this);
+        }
         closed = true;
         for (Component component : List.copyOf(components)) {
             component.close();
+            component.detach();
         }
         components.clear();
     }

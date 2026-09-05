@@ -31,10 +31,11 @@ public final class FraymusApplication {
 
             System.out.printf(
                     "FRAYMUS Core ready: mode=headless entities=%d ticks=%d simulationSeconds=%.3f "
-                            + "probe=(%.3f,%.3f) fixedStep=%.6f%n",
+                            + "entity=%s position=(%.3f,%.3f) fixedStep=%.6f%n",
                     world.getEntities().size(),
                     clock.getTick(),
                     clock.getSimulationSeconds(),
+                    probe.getName(),
                     probe.getTransform().getX(),
                     probe.getTransform().getY(),
                     clock.getFixedStepSeconds());

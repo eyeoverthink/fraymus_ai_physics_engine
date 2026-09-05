@@ -24,8 +24,8 @@ class WorldTest {
             world.step(0.25);
 
             assertEquals(List.of(
-                    "first:start", "first:update",
-                    "second:start", "second:update",
+                    "first:start", "second:start",
+                    "first:update", "second:update",
                     "first:update", "second:update"), events);
         }
     }

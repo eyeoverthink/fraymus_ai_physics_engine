@@ -16,6 +16,7 @@ public class World implements AutoCloseable {
     private final Map<Long, Entity> pendingAdditions = new LinkedHashMap<>();
     private final Set<Entity> pendingRemovals = new LinkedHashSet<>();
     private long nextEntityId = 1;
+    private boolean started;
     private boolean stepping;
     private boolean closed;
 
@@ -33,6 +34,14 @@ public class World implements AutoCloseable {
             addImmediately(entity);
         }
         return entity;
+    }
+
+    public boolean isStarted() {
+        return started;
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 
     public boolean removeEntity(Entity entity) {
@@ -53,6 +62,24 @@ public class World implements AutoCloseable {
         return removeImmediately(entity);
     }
 
+    /**
+     * Removes an entity without closing it so it may enter another world.
+     * Detaching during a step is rejected; use {@link #removeEntity(Entity)}
+     * for deferred destruction.
+     */
+    public boolean detachEntity(Entity entity) {
+        ensureOpen();
+        Objects.requireNonNull(entity, "entity");
+        if (stepping) {
+            throw new IllegalStateException("Entities cannot be detached during a world step");
+        }
+        if (entity.getWorld() != this || entities.remove(entity.getId()) == null) {
+            return false;
+        }
+        entity.detach(this);
+        return true;
+    }
+
     public Optional<Entity> getEntity(long id) {
         return Optional.ofNullable(entities.get(id));
     }
@@ -70,6 +97,17 @@ public class World implements AutoCloseable {
         return Collections.unmodifiableList(matches);
     }
 
+    public void start() {
+        ensureOpen();
+        if (started) {
+            return;
+        }
+        started = true;
+        for (Entity entity : List.copyOf(entities.values())) {
+            entity.startIfNeeded();
+        }
+    }
+
     public void step(double fixedStepSeconds) {
         ensureOpen();
         if (!(fixedStepSeconds > 0.0) || !Double.isFinite(fixedStepSeconds)) {
@@ -79,10 +117,13 @@ public class World implements AutoCloseable {
             throw new IllegalStateException("World step cannot be re-entered");
         }
 
+        start();
         stepping = true;
         try {
             for (Entity entity : List.copyOf(entities.values())) {
-                entity.update(fixedStepSeconds);
+                if (!pendingRemovals.contains(entity)) {
+                    entity.update(fixedStepSeconds);
+                }
             }
         } finally {
             stepping = false;
@@ -90,9 +131,16 @@ public class World implements AutoCloseable {
                 removeImmediately(entity);
             }
             pendingRemovals.clear();
-            entities.putAll(pendingAdditions);
+            for (Entity entity : pendingAdditions.values()) {
+                entities.put(entity.getId(), entity);
+                entity.startIfNeeded();
+            }
             pendingAdditions.clear();
         }
+    }
+
+    public void update(double deltaSeconds) {
+        step(deltaSeconds);
     }
 
     @Override
@@ -118,6 +166,9 @@ public class World implements AutoCloseable {
         long id = nextEntityId++;
         entity.attach(this, id);
         entities.put(id, entity);
+        if (started) {
+            entity.startIfNeeded();
+        }
     }
 
     private boolean removeImmediately(Entity entity) {

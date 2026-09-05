@@ -12,7 +12,14 @@ public class Component implements AutoCloseable {
     private boolean closed;
 
     public final Entity getEntity() {
+        if (entity == null) {
+            throw new IllegalStateException("Component is not attached to an entity");
+        }
         return entity;
+    }
+
+    public final boolean isAttached() {
+        return entity != null;
     }
 
     public final boolean isStarted() {
@@ -32,28 +39,41 @@ public class Component implements AutoCloseable {
     }
 
     final void attach(Entity owner) {
-        if (entity != null && entity != owner) {
-            throw new IllegalStateException("Component is already attached to another entity");
-        }
         if (closed) {
             throw new IllegalStateException("Closed components cannot be attached");
+        }
+        if (entity != null) {
+            throw new IllegalStateException("Component is already attached to an entity");
         }
         entity = owner;
     }
 
-    final void runUpdate(double fixedStepSeconds) {
-        if (closed) {
-            return;
-        }
-        if (!started) {
+    final void detach() {
+        entity = null;
+    }
+
+    final void startIfNeeded() {
+        if (!started && !closed) {
             started = true;
             start();
         }
-        update(fixedStepSeconds);
+    }
+
+    final void runUpdate(double fixedStepSeconds) {
+        if (!closed) {
+            update(fixedStepSeconds);
+        }
     }
 
     @Override
-    public void close() {
-        closed = true;
+    public final void close() {
+        if (!closed) {
+            closed = true;
+            onClose();
+        }
+    }
+
+    /** Optional resource cleanup hook. */
+    protected void onClose() {
     }
 }
