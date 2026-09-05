@@ -6,6 +6,7 @@ public final class SimulationClock {
     private double accumulatorSeconds;
     private long tick;
     private double simulationSeconds;
+    private boolean advancing;
 
     public SimulationClock() { this(1.0 / 60.0); }
 
@@ -21,16 +22,28 @@ public final class SimulationClock {
             throw new IllegalArgumentException("elapsedSeconds must be finite and >= 0");
         }
         if (step == null) throw new NullPointerException("step");
-        accumulatorSeconds += elapsedSeconds;
-        int steps = 0;
-        while (accumulatorSeconds + 1e-12 >= fixedStepSeconds) {
-            step.run();
-            accumulatorSeconds -= fixedStepSeconds;
-            tick++;
-            simulationSeconds += fixedStepSeconds;
-            steps++;
+        if (advancing) {
+            throw new IllegalStateException("SimulationClock.advance cannot be called from a step callback");
         }
-        return steps;
+        if (elapsedSeconds > Double.MAX_VALUE - accumulatorSeconds) {
+            throw new IllegalArgumentException("elapsedSeconds would overflow the clock accumulator");
+        }
+
+        advancing = true;
+        try {
+            accumulatorSeconds += elapsedSeconds;
+            int steps = 0;
+            while (accumulatorSeconds + 1e-12 >= fixedStepSeconds) {
+                step.run();
+                accumulatorSeconds -= fixedStepSeconds;
+                tick++;
+                simulationSeconds += fixedStepSeconds;
+                steps++;
+            }
+            return steps;
+        } finally {
+            advancing = false;
+        }
     }
 
     public double getFixedStepSeconds() { return fixedStepSeconds; }
