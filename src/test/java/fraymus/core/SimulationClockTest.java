@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * FOUNDATION-002 acceptance test: fixed simulation timestep is explicit,
- * the accumulator consumes all elapsed simulation time correctly, and
+ * the accumulator preserves all elapsed simulation time correctly, and
  * running N fixed steps produces reproducible state.
  */
 class SimulationClockTest {
@@ -56,6 +56,60 @@ class SimulationClockTest {
         assertThrows(IllegalArgumentException.class, () -> new SimulationClock(-0.1));
         assertThrows(IllegalArgumentException.class, () -> new SimulationClock(Double.NaN));
         assertThrows(IllegalArgumentException.class, () -> new SimulationClock(Double.POSITIVE_INFINITY));
+        assertThrows(IllegalArgumentException.class, () -> new SimulationClock(0.1, 0));
+        assertThrows(IllegalArgumentException.class, () -> new SimulationClock(0.1, -1));
+    }
+
+    @Test
+    void boundsCatchUpWorkAndExposesUnprocessedSimulationTime() {
+        SimulationClock clock = new SimulationClock(0.1, 3);
+        int[] runs = {0};
+
+        assertEquals(3, clock.advance(1.05, () -> runs[0]++));
+
+        assertEquals(3, runs[0]);
+        assertEquals(3L, clock.getTick());
+        assertEquals(7L, clock.getPendingStepCount());
+        assertEquals(0.75, clock.getAccumulatorSeconds(), 1e-9);
+    }
+
+    @Test
+    void drainsCatchUpBacklogWithoutDroppingElapsedTime() {
+        SimulationClock clock = new SimulationClock(0.1, 3);
+        int[] runs = {0};
+
+        int steps = clock.advance(1.05, () -> runs[0]++);
+        while (clock.getPendingStepCount() > 0) {
+            steps += clock.advance(0.0, () -> runs[0]++);
+        }
+
+        assertEquals(10, steps);
+        assertEquals(10, runs[0]);
+        assertEquals(10L, clock.getTick());
+        assertEquals(1.0, clock.getSimulationSeconds(), 1e-9);
+        assertEquals(0.05, clock.getAccumulatorSeconds(), 1e-9);
+    }
+
+    @Test
+    void catchUpResultIsDeterministicAcrossElapsedTimeChunking() {
+        SimulationClock oneStall = new SimulationClock(0.1, 3);
+        SimulationClock severalFrames = new SimulationClock(0.1, 3);
+
+        oneStall.advance(1.05, () -> {});
+        severalFrames.advance(0.21, () -> {});
+        severalFrames.advance(0.34, () -> {});
+        severalFrames.advance(0.50, () -> {});
+
+        while (oneStall.getPendingStepCount() > 0) {
+            oneStall.advance(0.0, () -> {});
+        }
+        while (severalFrames.getPendingStepCount() > 0) {
+            severalFrames.advance(0.0, () -> {});
+        }
+
+        assertEquals(oneStall.getTick(), severalFrames.getTick());
+        assertEquals(oneStall.getSimulationSeconds(), severalFrames.getSimulationSeconds(), 1e-9);
+        assertEquals(oneStall.getAccumulatorSeconds(), severalFrames.getAccumulatorSeconds(), 1e-9);
     }
 
     @Test
