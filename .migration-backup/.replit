@@ -1,0 +1,34 @@
+modules = ["java-graalvm22.3"]
+
+[nix]
+channel = "stable-25_05"
+
+[agent]
+expertMode = true
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Run FRAYMUS Core"
+
+[[workflows.workflow]]
+name = "Run FRAYMUS Core"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "mvn -q package && java -jar target/fraymus-ai-physics-engine-0.1.0-SNAPSHOT.jar --headless"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000
