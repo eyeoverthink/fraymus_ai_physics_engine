@@ -1,8 +1,8 @@
 import { Router, type IRouter } from "express";
-import sfaRouter from "./sfa";
+import { createSfaRouter, type SfaRouterOptions } from "./sfa";
 
-const router: IRouter = Router();
-
-router.use(sfaRouter);
-
-export default router;
+export default function router(options: SfaRouterOptions = {}): IRouter {
+  const router: IRouter = Router();
+  router.use(createSfaRouter(options));
+  return router;
+}

@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import { clerkMiddleware, getAuth } from "@clerk/express";
@@ -10,8 +10,14 @@ import {
   clerkProxyMiddleware,
 } from "./middlewares/clerkProxyMiddleware";
 
-const app: Express = express();
+export interface AppOptions {
+  getUserId?: (req: Request) => string | null;
+  dataRoot?: string;
+}
 
+export function createApp(options: AppOptions = {}): Express {
+const app: Express = express();
+const resolveUserId = options.getUserId ?? ((req) => getAuth(req).userId);
 app.use(
   pinoHttp({
     logger,
@@ -31,8 +37,22 @@ app.use(
     },
   }),
 );
-// No cross-origin API access is permitted. Same-origin browser requests do not
-// require CORS response headers.
+// Reject cross-origin requests rather than merely omitting CORS headers.
+app.use((req, res, next) => {
+  const origin = req.get("origin");
+  if (origin) {
+    try {
+      if (new URL(origin).host !== req.get("host")) {
+        res.status(403).json({ error: "Cross-origin requests are not permitted" });
+        return;
+      }
+    } catch {
+      res.status(403).json({ error: "Cross-origin requests are not permitted" });
+      return;
+    }
+  }
+  next();
+});
 app.use(cors({ origin: false }));
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(express.json({ limit: "1mb", strict: true }));
@@ -51,7 +71,7 @@ const requestWindowMs = 60_000;
 const requestLimit = 120;
 const requestCounts = new Map<string, { count: number; startedAt: number }>();
 app.use("/api", (req, res, next) => {
-  const userId = getAuth(req).userId;
+  const userId = resolveUserId(req);
   if (!userId) {
     res.status(401).json({ error: "Authentication required" });
     return;
@@ -70,6 +90,10 @@ app.use("/api", (req, res, next) => {
   }
   next();
 });
-app.use("/api", router);
+app.use("/api", router({ getUserId: resolveUserId, dataRoot: options.dataRoot }));
 
+return app;
+}
+
+const app = createApp();
 export default app;

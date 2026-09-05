@@ -1,1 +1,2 @@
 - [SFA repository boundary](sfa-repository-boundary.md) — the multi-app SFA workspace belongs in its own private repository, never the shared original engine repository.
+- [GitHub publishing path](github-publishing-path.md) — publish the SFA through the authorized GitHub integration when direct Git credentials are unavailable.

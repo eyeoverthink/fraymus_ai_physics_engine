@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request } from "express";
 import { getAuth } from "@clerk/express";
 import { desc, eq, sql } from "drizzle-orm";
 import {
@@ -15,14 +15,21 @@ import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
-const router: IRouter = Router();
 const execFileAsync = promisify(execFile);
 const maxBytes = 1024 * 1024;
 const extensions = new Set([".txt", ".md", ".json", ".yaml", ".yml", ".xml", ".java", ".ts", ".tsx", ".js", ".jsx", ".css", ".html", ".properties", ".csv"]);
-const dataRoot = resolve(process.env.SFA_DATA_DIR ?? join(process.cwd(), "sfa-data"));
+export interface SfaRouterOptions {
+  getUserId?: (req: Request) => string | null;
+  dataRoot?: string;
+}
 
-function userId(req: Parameters<typeof getAuth>[0]): string {
-  const id = getAuth(req).userId;
+export function createSfaRouter(options: SfaRouterOptions = {}): IRouter {
+const router: IRouter = Router();
+const dataRoot = resolve(options.dataRoot ?? process.env.SFA_DATA_DIR ?? join(process.cwd(), "sfa-data"));
+const resolveUserId = options.getUserId ?? ((req: Request) => getAuth(req).userId);
+
+function userId(req: Request): string {
+  const id = resolveUserId(req);
   if (!id) throw new Error("Authenticated user is missing");
   return id;
 }
@@ -137,7 +144,10 @@ router.put("/files/content", async (req, res): Promise<void> => {
   res.json(UpdateFileContentResponse.parse(parsed.data));
 });
 router.post("/terminal/execute", async (req, res): Promise<void> => {
-  const parsed = ExecuteTerminalOperationBody.safeParse(req.body);
+  // Orval currently emits a non-strict Zod object even though the OpenAPI
+  // contract declares additionalProperties: false. Enforce that boundary here
+  // so command-like fields cannot be smuggled beside an allowed operation.
+  const parsed = ExecuteTerminalOperationBody.strict().safeParse(req.body);
   if (!parsed.success) { error(res, "Invalid terminal operation"); return; }
   const operation = parsed.data.operation;
   try {
@@ -153,4 +163,7 @@ router.get("/ecs/status", async (_req, res): Promise<void> => {
   try { await access(join(process.cwd(), "pom.xml"), constants.R_OK); mavenProject = "available"; } catch { /* unavailable is honest */ }
   res.json(GetEcsStatusResponse.parse({ status: "unavailable", mavenProject, process: "unavailable" }));
 });
-export default router;
+return router;
+}
+
+export default createSfaRouter;
