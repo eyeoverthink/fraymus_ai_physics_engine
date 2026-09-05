@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "FRAYMUS Core"
+description = "The workspace web entry point for the preserved FRAYMUS Java 17 simulation core, keeping the original headless engine and Java2D renderer alongside the multi-app scaffold."
+version = "1.0.0"
+id = "artifacts/fraymus-core"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21832
+
+[services.development]
+run = "pnpm --filter @workspace/fraymus-core run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/fraymus-core", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/fraymus-core/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21832"
+BASE_PATH = "/"

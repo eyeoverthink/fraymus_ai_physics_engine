@@ -1,0 +1,294 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: sfa
+    description: Authenticated SFA control-plane operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /session:
+    get:
+      operationId: getSession
+      tags: [sfa]
+      summary: Current authenticated session
+      responses:
+        "200":
+          description: Current session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+  /system/status:
+    get:
+      operationId: getSystemStatus
+      tags: [sfa]
+      summary: Control-plane system status
+      responses:
+        "200":
+          description: System status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemStatus"
+  /models:
+    get:
+      operationId: getModels
+      tags: [sfa]
+      summary: Available model providers
+      responses:
+        "200":
+          description: Model-provider status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ModelStatus"
+  /chat:
+    post:
+      operationId: createChat
+      tags: [sfa]
+      summary: Submit a chat request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatInput"
+      responses:
+        "200":
+          description: Chat provider response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatResult"
+  /episodes:
+    get:
+      operationId: getEpisodes
+      tags: [sfa]
+      summary: List the caller's persisted episodes
+      responses:
+        "200":
+          description: Episodes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Episode"
+  /events:
+    get:
+      operationId: getEvents
+      tags: [sfa]
+      summary: List the caller's receipt events
+      responses:
+        "200":
+          description: Receipt events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReceiptEvent"
+  /files:
+    get:
+      operationId: getFiles
+      tags: [sfa]
+      summary: List safe workspace data files
+      responses:
+        "200":
+          description: Files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkspaceFile"
+  /files/content:
+    get:
+      operationId: getFileContent
+      tags: [sfa]
+      summary: Read a safe workspace data file
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 512
+      responses:
+        "200":
+          description: File content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileContent"
+    put:
+      operationId: updateFileContent
+      tags: [sfa]
+      summary: Atomically update a safe workspace data file
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileContentInput"
+      responses:
+        "200":
+          description: Updated file content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileContent"
+  /terminal/execute:
+    post:
+      operationId: executeTerminalOperation
+      tags: [sfa]
+      summary: Execute a fixed read-only terminal operation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TerminalOperationInput"
+      responses:
+        "200":
+          description: Read-only operation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TerminalResult"
+  /ecs/status:
+    get:
+      operationId: getEcsStatus
+      tags: [sfa]
+      summary: Read-only ECS and Maven project status
+      responses:
+        "200":
+          description: ECS status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EcsStatus"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    Session:
+      type: object
+      required: [userId, authenticated]
+      properties:
+        userId: { type: string, minLength: 1 }
+        authenticated: { type: boolean }
+    SystemStatus:
+      type: object
+      required: [status, database, providers]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        database: { type: string, enum: [connected, unavailable] }
+        providers: { type: string, enum: [disabled] }
+    ModelStatus:
+      type: object
+      required: [id, status, reason]
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [disabled, disconnected] }
+        reason: { type: string }
+    ChatInput:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message: { type: string, minLength: 1, maxLength: 16000 }
+        model: { type: string, maxLength: 200 }
+    ChatResult:
+      type: object
+      required: [status, message]
+      properties:
+        status: { type: string, enum: [disabled, disconnected] }
+        message: { type: string }
+    Episode:
+      type: object
+      required: [id, kind, createdAt]
+      properties:
+        id: { type: string }
+        kind: { type: string }
+        createdAt: { type: string, format: date-time }
+        metadata: { type: object, additionalProperties: true }
+    ReceiptEvent:
+      type: object
+      required: [id, type, createdAt]
+      properties:
+        id: { type: string }
+        type: { type: string }
+        createdAt: { type: string, format: date-time }
+        metadata: { type: object, additionalProperties: true }
+    WorkspaceFile:
+      type: object
+      required: [path, size, modifiedAt]
+      properties:
+        path: { type: string }
+        size: { type: integer, minimum: 0, maximum: 1048576 }
+        modifiedAt: { type: string, format: date-time }
+    FileContent:
+      type: object
+      required: [path, content]
+      properties:
+        path: { type: string }
+        content: { type: string, maxLength: 1048576 }
+    FileContentInput:
+      type: object
+      additionalProperties: false
+      required: [path, content]
+      properties:
+        path: { type: string, minLength: 1, maxLength: 512 }
+        content: { type: string, maxLength: 1048576 }
+    TerminalOperationInput:
+      type: object
+      additionalProperties: false
+      required: [operation]
+      properties:
+        operation:
+          type: string
+          enum: [status, list-files, maven-version, java-version]
+    TerminalResult:
+      type: object
+      required: [operation, status, output]
+      properties:
+        operation: { type: string, enum: [status, list-files, maven-version, java-version] }
+        status: { type: string, enum: [ok, unavailable] }
+        output: { type: string }
+    EcsStatus:
+      type: object
+      required: [status, mavenProject, process]
+      properties:
+        status: { type: string, enum: [available, unavailable] }
+        mavenProject: { type: string, enum: [available, unavailable] }
+        process: { type: string, enum: [available, unavailable] }
+
