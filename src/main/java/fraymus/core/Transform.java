@@ -22,4 +22,8 @@ public final class Transform {
     public Transform translate(double dx, double dy) { x += dx; y += dy; return this; }
     public Transform setRotation(double rotation) { this.rotation = rotation; return this; }
     public Transform setScale(double x, double y) { scaleX = x; scaleY = y; return this; }
+
+    public Transform copy() {
+        return new Transform(x, y).setRotation(rotation).setScale(scaleX, scaleY);
+    }
 }

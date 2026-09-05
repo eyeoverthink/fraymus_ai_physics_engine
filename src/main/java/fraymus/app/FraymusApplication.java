@@ -1,6 +1,9 @@
 package fraymus.app;
 
 import fraymus.core.SimulationClock;
+import fraymus.core.Component;
+import fraymus.core.Entity;
+import fraymus.core.World;
 
 /**
  * Headless bootstrap for the renderer-independent FRAYMUS Core.
@@ -18,18 +21,24 @@ public final class FraymusApplication {
     public static void main(String[] args) {
         int requestedTicks = parseRequestedTicks(args);
         SimulationClock clock = new SimulationClock();
+        try (World world = new World()) {
+            Entity probe = world.addEntity(new Entity("Headless probe"));
+            probe.addComponent(new ConstantVelocity(3.0, -1.5));
 
-        for (int i = 0; i < requestedTicks; i++) {
-            clock.advance(clock.getFixedStepSeconds(), () -> {
-                // Simulation systems will be advanced here, one fixed step at a time.
-            });
+            for (int i = 0; i < requestedTicks; i++) {
+                clock.advance(clock.getFixedStepSeconds(), () -> world.step(clock.getFixedStepSeconds()));
+            }
+
+            System.out.printf(
+                    "FRAYMUS Core ready: mode=headless entities=%d ticks=%d simulationSeconds=%.3f "
+                            + "probe=(%.3f,%.3f) fixedStep=%.6f%n",
+                    world.getEntities().size(),
+                    clock.getTick(),
+                    clock.getSimulationSeconds(),
+                    probe.getTransform().getX(),
+                    probe.getTransform().getY(),
+                    clock.getFixedStepSeconds());
         }
-
-        System.out.printf(
-                "FRAYMUS Core ready: mode=headless ticks=%d simulationSeconds=%.3f fixedStep=%.6f%n",
-                clock.getTick(),
-                clock.getSimulationSeconds(),
-                clock.getFixedStepSeconds());
     }
 
     private static int parseRequestedTicks(String[] args) {
@@ -50,5 +59,22 @@ public final class FraymusApplication {
         }
 
         throw new IllegalArgumentException("Usage: java -jar fraymus.jar [--headless | --ticks N]");
+    }
+
+    private static final class ConstantVelocity extends Component {
+        private final double velocityX;
+        private final double velocityY;
+
+        private ConstantVelocity(double velocityX, double velocityY) {
+            this.velocityX = velocityX;
+            this.velocityY = velocityY;
+        }
+
+        @Override
+        protected void update(double fixedStepSeconds) {
+            getEntity().getTransform().translate(
+                    velocityX * fixedStepSeconds,
+                    velocityY * fixedStepSeconds);
+        }
     }
 }
