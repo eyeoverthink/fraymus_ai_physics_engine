@@ -12,7 +12,70 @@ tags:
     description: Health operations
   - name: sfa
     description: Authenticated SFA control-plane operations
+  - name: storage
+    description: Authenticated, owner-scoped working file storage
 paths:
+  /working-files:
+    get:
+      operationId: getWorkingFiles
+      tags: [storage]
+      summary: List the caller's uploaded working files
+      responses:
+        "200":
+          description: Working files
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/WorkingFile" }
+  /working-files/uploads/request-url:
+    post:
+      operationId: requestWorkingFileUploadUrl
+      tags: [storage]
+      summary: Request a private direct-upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkingFileUploadRequest" }
+      responses:
+        "200":
+          description: Upload URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkingFileUploadUrl" }
+  /working-files/uploads/complete:
+    post:
+      operationId: completeWorkingFileUpload
+      tags: [storage]
+      summary: Verify, parse, authorize, and record an uploaded object
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/WorkingFileUploadCompletion" }
+      responses:
+        "200":
+          description: Verified working file
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkingFile" }
+  /working-files/{fileId}/download:
+    get:
+      operationId: downloadWorkingFile
+      tags: [storage]
+      summary: Download the caller's original stored file bytes
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Original file bytes
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
   /healthz:
     get:
       operationId: healthCheck
@@ -193,6 +256,43 @@ paths:
                 $ref: "#/components/schemas/EcsStatus"
 components:
   schemas:
+    WorkingFileUploadRequest:
+      type: object
+      additionalProperties: false
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1, maximum: 10485760 }
+        contentType: { type: string, minLength: 1, maxLength: 127 }
+    WorkingFileUploadUrl:
+      type: object
+      required: [uploadURL, objectPath, expiresInSeconds]
+      properties:
+        uploadURL: { type: string, format: uri }
+        objectPath: { type: string }
+        expiresInSeconds: { type: integer }
+    WorkingFileUploadCompletion:
+      type: object
+      additionalProperties: false
+      required: [objectPath, name, size, contentType]
+      properties:
+        objectPath: { type: string, pattern: "^/objects/uploads/[0-9a-f-]+$" }
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1, maximum: 10485760 }
+        contentType: { type: string, minLength: 1, maxLength: 127 }
+    WorkingFile:
+      type: object
+      required: [id, name, size, contentType, createdAt, parseStatus]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        size: { type: integer }
+        contentType: { type: string }
+        createdAt: { type: string, format: date-time }
+        parseStatus: { type: string, enum: [parsed, unsupported, failed] }
+        parsedContent:
+          type: string
+          description: Bounded text derived from the original bytes; never the original file.
     HealthStatus:
       type: object
       properties:

@@ -29,15 +29,22 @@ Layers share coordinates but remain separate. This allows a renderer or inspecto
 - Focused lattice tests cover dimensions, coordinate isolation, stable corner indices, clearing, and invalid coordinates: passed.
 - Full Maven clean verification: passed.
 
+## Completed step: immutable rigid-body state
+
+- Added a renderer-independent immutable record for three-axis velocity, gravity response, mass, capacity, energy, tick, and simulation seconds.
+- Requires finite numeric state, positive mass, nonnegative scalar state and time, and energy no greater than capacity.
+- Contains no force integration, gravity application, collision resolution, ECS ownership, rendering, or wall-clock dependency.
+- Focused rigid-body state tests: passed.
+- Full Maven clean verification: passed.
+
 ## Next single step
 
-Define the immutable data record stored in a rigid-body layer. It should describe state such as velocity, gravity response, mass, capacity, energy, and an individual deterministic time/tick value. It must not yet integrate forces, resolve collisions, or render framebuffer data.
+Create the rigid-body data layer by storing immutable rigid-body state in a separate `16 × 16 × 16` lattice aligned with spatial coordinates. Do not yet update values over time or apply forces.
 
 ## Later steps, not started
 
-1. Rigid-body data layer aligned to the spatial lattice.
-2. Per-cell deterministic data clocks driven by simulation `dt`.
-3. Force/gravity integration.
-4. Collider data and explicit collision participation.
-5. Layer selection and z-slice inspection.
-6. Managed framebuffer data layer and Java2D visualization.
+1. Per-cell deterministic data clocks driven by simulation `dt`.
+2. Force/gravity integration.
+3. Collider data and explicit collision participation.
+4. Layer selection and z-slice inspection.
+5. Managed framebuffer data layer and Java2D visualization.

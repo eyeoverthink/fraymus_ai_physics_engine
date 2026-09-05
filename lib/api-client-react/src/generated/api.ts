@@ -34,6 +34,10 @@ import type {
   SystemStatus,
   TerminalOperationInput,
   TerminalResult,
+  WorkingFile,
+  WorkingFileUploadCompletion,
+  WorkingFileUploadRequest,
+  WorkingFileUploadUrl,
   WorkspaceFile
 } from './api.schemas';
 
@@ -63,6 +67,302 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetWorkingFilesUrl = () => {
+
+
+
+
+  return `/api/working-files`
+}
+
+/**
+ * @summary List the caller's uploaded working files
+ */
+export const getWorkingFiles = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkingFile[]> => {
+
+  return customFetch<WorkingFile[]>(getGetWorkingFilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkingFilesQueryKey = () => {
+    return [
+    `/api/working-files`
+    ] as const;
+    }
+
+
+export const getGetWorkingFilesQueryOptions = <TData = Awaited<ReturnType<typeof getWorkingFiles>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkingFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkingFilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkingFiles>>> = ({ signal }) => getWorkingFiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkingFiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkingFilesQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkingFiles>>>
+export type GetWorkingFilesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List the caller's uploaded working files
+ */
+
+export function useGetWorkingFiles<TData = Awaited<ReturnType<typeof getWorkingFiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkingFiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkingFilesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRequestWorkingFileUploadUrlUrl = () => {
+
+
+
+
+  return `/api/working-files/uploads/request-url`
+}
+
+/**
+ * @summary Request a private direct-upload URL
+ */
+export const requestWorkingFileUploadUrl = async (workingFileUploadRequest: WorkingFileUploadRequest, options?: Parameters<typeof customFetch>[1]): Promise<WorkingFileUploadUrl> => {
+
+  return customFetch<WorkingFileUploadUrl>(getRequestWorkingFileUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(workingFileUploadRequest)
+  }
+);}
+
+
+
+
+
+export const getRequestWorkingFileUploadUrlMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestWorkingFileUploadUrl>>, TError,{data: BodyType<WorkingFileUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestWorkingFileUploadUrl>>, TError,{data: BodyType<WorkingFileUploadRequest>}, TContext> => {
+
+const mutationKey = ['requestWorkingFileUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestWorkingFileUploadUrl>>, {data: BodyType<WorkingFileUploadRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestWorkingFileUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestWorkingFileUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof requestWorkingFileUploadUrl>>>
+    export type RequestWorkingFileUploadUrlMutationBody = BodyType<WorkingFileUploadRequest>
+    export type RequestWorkingFileUploadUrlMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Request a private direct-upload URL
+ */
+export const useRequestWorkingFileUploadUrl = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestWorkingFileUploadUrl>>, TError,{data: BodyType<WorkingFileUploadRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestWorkingFileUploadUrl>>,
+        TError,
+        {data: BodyType<WorkingFileUploadRequest>},
+        TContext
+      > => {
+      return useMutation(getRequestWorkingFileUploadUrlMutationOptions(options));
+    }
+
+export const getCompleteWorkingFileUploadUrl = () => {
+
+
+
+
+  return `/api/working-files/uploads/complete`
+}
+
+/**
+ * @summary Verify, parse, authorize, and record an uploaded object
+ */
+export const completeWorkingFileUpload = async (workingFileUploadCompletion: WorkingFileUploadCompletion, options?: Parameters<typeof customFetch>[1]): Promise<WorkingFile> => {
+
+  return customFetch<WorkingFile>(getCompleteWorkingFileUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(workingFileUploadCompletion)
+  }
+);}
+
+
+
+
+
+export const getCompleteWorkingFileUploadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeWorkingFileUpload>>, TError,{data: BodyType<WorkingFileUploadCompletion>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeWorkingFileUpload>>, TError,{data: BodyType<WorkingFileUploadCompletion>}, TContext> => {
+
+const mutationKey = ['completeWorkingFileUpload'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeWorkingFileUpload>>, {data: BodyType<WorkingFileUploadCompletion>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  completeWorkingFileUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteWorkingFileUploadMutationResult = NonNullable<Awaited<ReturnType<typeof completeWorkingFileUpload>>>
+    export type CompleteWorkingFileUploadMutationBody = BodyType<WorkingFileUploadCompletion>
+    export type CompleteWorkingFileUploadMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Verify, parse, authorize, and record an uploaded object
+ */
+export const useCompleteWorkingFileUpload = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeWorkingFileUpload>>, TError,{data: BodyType<WorkingFileUploadCompletion>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeWorkingFileUpload>>,
+        TError,
+        {data: BodyType<WorkingFileUploadCompletion>},
+        TContext
+      > => {
+      return useMutation(getCompleteWorkingFileUploadMutationOptions(options));
+    }
+
+export const getDownloadWorkingFileUrl = (fileId: string,) => {
+
+
+
+
+  return `/api/working-files/${fileId}/download`
+}
+
+/**
+ * @summary Download the caller's original stored file bytes
+ */
+export const downloadWorkingFile = async (fileId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadWorkingFileUrl(fileId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadWorkingFileQueryKey = (fileId: string,) => {
+    return [
+    `/api/working-files/${fileId}/download`
+    ] as const;
+    }
+
+
+export const getDownloadWorkingFileQueryOptions = <TData = Awaited<ReturnType<typeof downloadWorkingFile>>, TError = ErrorType<unknown>>(fileId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadWorkingFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadWorkingFileQueryKey(fileId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadWorkingFile>>> = ({ signal }) => downloadWorkingFile(fileId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: fileId !== null && fileId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadWorkingFile>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type DownloadWorkingFileQueryResult = NonNullable<Awaited<ReturnType<typeof downloadWorkingFile>>>
+export type DownloadWorkingFileQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Download the caller's original stored file bytes
+ */
+
+export function useDownloadWorkingFile<TData = Awaited<ReturnType<typeof downloadWorkingFile>>, TError = ErrorType<unknown>>(
+ fileId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof downloadWorkingFile>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getDownloadWorkingFileQueryOptions(fileId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getHealthCheckUrl = () => {
 

@@ -9,6 +9,85 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary List the caller's uploaded working files
+ */
+export const GetWorkingFilesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "size": zod.number().int(),
+  "contentType": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "parseStatus": zod.enum(['parsed', 'unsupported', 'failed']),
+  "parsedContent": zod.string().optional().describe('Bounded text derived from the original bytes; never the original file.')
+})
+export const GetWorkingFilesResponse = zod.array(GetWorkingFilesResponseItem)
+
+
+/**
+ * @summary Request a private direct-upload URL
+ */
+export const requestWorkingFileUploadUrlBodyNameMax = 255;
+
+export const requestWorkingFileUploadUrlBodySizeMax = 10485760;
+
+export const requestWorkingFileUploadUrlBodyContentTypeMax = 127;
+
+
+
+export const RequestWorkingFileUploadUrlBody = zod.object({
+  "name": zod.string().min(1).max(requestWorkingFileUploadUrlBodyNameMax),
+  "size": zod.number().int().min(1).max(requestWorkingFileUploadUrlBodySizeMax),
+  "contentType": zod.string().min(1).max(requestWorkingFileUploadUrlBodyContentTypeMax)
+})
+
+export const RequestWorkingFileUploadUrlResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "objectPath": zod.string(),
+  "expiresInSeconds": zod.number().int()
+})
+
+
+/**
+ * @summary Verify, parse, authorize, and record an uploaded object
+ */
+export const completeWorkingFileUploadBodyObjectPathRegExp = new RegExp('^/objects/uploads/[0-9a-f-]+$');
+export const completeWorkingFileUploadBodyNameMax = 255;
+
+export const completeWorkingFileUploadBodySizeMax = 10485760;
+
+export const completeWorkingFileUploadBodyContentTypeMax = 127;
+
+
+
+export const CompleteWorkingFileUploadBody = zod.object({
+  "objectPath": zod.string().regex(completeWorkingFileUploadBodyObjectPathRegExp),
+  "name": zod.string().min(1).max(completeWorkingFileUploadBodyNameMax),
+  "size": zod.number().int().min(1).max(completeWorkingFileUploadBodySizeMax),
+  "contentType": zod.string().min(1).max(completeWorkingFileUploadBodyContentTypeMax)
+})
+
+export const CompleteWorkingFileUploadResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "size": zod.number().int(),
+  "contentType": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "parseStatus": zod.enum(['parsed', 'unsupported', 'failed']),
+  "parsedContent": zod.string().optional().describe('Bounded text derived from the original bytes; never the original file.')
+})
+
+
+/**
+ * @summary Download the caller's original stored file bytes
+ */
+export const DownloadWorkingFileParams = zod.object({
+  "fileId": zod.coerce.string().uuid()
+})
+
+export const DownloadWorkingFileResponse = zod.unknown()
+
+
+/**
  * Returns server health status
  * @summary Health check
  */
