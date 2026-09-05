@@ -28,3 +28,7 @@ args = "mvn -q package && java -jar target/fraymus-ai-physics-engine-0.1.0-SNAPS
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 120000

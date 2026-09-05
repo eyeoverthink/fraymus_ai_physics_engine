@@ -46,5 +46,39 @@ class SimulationClockTest {
         SimulationClock clock = new SimulationClock();
         assertThrows(IllegalArgumentException.class, () -> clock.advance(-1.0, () -> {}));
         assertThrows(IllegalArgumentException.class, () -> clock.advance(Double.NaN, () -> {}));
+        assertThrows(IllegalArgumentException.class, () -> clock.advance(Double.POSITIVE_INFINITY, () -> {}));
+        assertThrows(NullPointerException.class, () -> clock.advance(0.0, null));
+    }
+
+    @Test
+    void rejectsInvalidFixedSteps() {
+        assertThrows(IllegalArgumentException.class, () -> new SimulationClock(0.0));
+        assertThrows(IllegalArgumentException.class, () -> new SimulationClock(-0.1));
+        assertThrows(IllegalArgumentException.class, () -> new SimulationClock(Double.NaN));
+        assertThrows(IllegalArgumentException.class, () -> new SimulationClock(Double.POSITIVE_INFINITY));
+    }
+
+    @Test
+    void rejectsReentrantAdvanceAndRemainsUsableAfterCallbackFailure() {
+        SimulationClock clock = new SimulationClock(0.1);
+
+        assertThrows(IllegalStateException.class,
+                () -> clock.advance(0.1, () -> clock.advance(0.1, () -> {})));
+        assertEquals(0L, clock.getTick());
+
+        assertEquals(2, clock.advance(0.1, () -> {}));
+        assertEquals(2L, clock.getTick());
+    }
+
+    @Test
+    void rejectsAccumulatorOverflowWithoutChangingClockState() {
+        SimulationClock clock = new SimulationClock(Double.MAX_VALUE);
+
+        clock.advance(Double.MAX_VALUE / 2.0, () -> {});
+        assertThrows(IllegalArgumentException.class,
+                () -> clock.advance(Double.MAX_VALUE, () -> {}));
+
+        assertEquals(0L, clock.getTick());
+        assertEquals(Double.MAX_VALUE / 2.0, clock.getAccumulatorSeconds());
     }
 }

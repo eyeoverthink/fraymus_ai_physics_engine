@@ -1,0 +1,106 @@
+Title — Secure Self-Hosted Agent Operating System
+
+Intent — A local, offline-first dashboard that lets you, your agents, and your Java ECS engine (codingminecraft MarioYoutube pattern) share a single /workspace with terminal, nano editor, file transfer, link clicking, real-time function/websearch monitoring, model switching, and SSH/API access — all on your Hostinger VPS + domain without paying for MERN.
+
+Field Equations
+
+Auth & Security (Boundary Condition): Access = HMAC(JWT, secret) ∧ TOTP(t) ∧ IP∈allowlist — no open URL, Clerk optional but violates self-hosted preference. Use Auth.js + GitHub OAuth + JWT + TOTP. Entropy of exposed endpoint S=-k_B Σ p ln p must be minimized: closed port 443 only via Nginx.
+ECS Invariant (Your Engine): GameObject = {id, Transform(x,y,scale), Component[]} — Component.update(dt) where dt = 1/60s. System = ∀e∈Entities: filter(ComponentMask) → update. This is your Jade ECS from 481392aa5bc... commit: Window → Scene → GameObject → Component (SpriteRenderer, Rigidbody, etc). Must hold Σ Components per frame <16ms @60fps.
+Ollama Offline Field: P(token|context) = softmax(W·h + b), h_{t+1}=Transformer(h_t). Offline constraint ∂/∂t internet = 0, model switch M∈{llama3,mistral,codellama,nomic-embed-text}, API POST /api/chat {model, messages, stream:false} on localhost:11434. Latency invariant L = tokens / (GPU_FLOPS / params) → ∼2.1ms/token on VPS.
+OpenClaw Gateway: ClawParticle at (50,50,50) amplitude 100 gravity well, HTTP bridge ClawConnector.dispatch(task, priority) → POST http://localhost:18789/execute 30s timeout. FusionEvent = when distance(Task,Claw) < ε → HTTP request.
+FileSystemGalaxy (Your Fraymus Core): Entropy S=-k_B Σ p_i ln p_i, for +10, while +10, Thread.sleep +30-50, TODO +20, FIXME +40, threshold Vth=φ⁻¹=0.618033988749895. Activation Id=0 if Vg<Vth else k(Vg-Vth)². D=16384=256 u64=2048B=32 ZMM, H=popcount(a XOR b), similarity=1-H/D.
+Storage Field: Google Drive 5TB mounted via rclone mount gdrive: /mnt/gdrive --vfs-cache-mode full, 5TB = 5*2⁴⁰ bytes, checksum ~(Σ bytes) & 0xFFFFFFFF = 0xffffe957 same as vpc.c BAT.
+Build Steps
+
+VPS Bootstrap (Hostinger hPanel + domain): SSH ssh root@your-domain, apt update && apt install docker.io nginx certbot python3-pip openjdk-17-jdk, curl -fsSL https://ollama.com/install.sh | sh, ollama pull llama3 && ollama pull nomic-embed-text, rclone config → gdrive, mkdir -p /opt/sfa/workspace /mnt/gdrive.
+Java ECS Bridge (plays nicely with java files): Keep your Jade engine from MarioYoutube. Add embedded Jetty REST in Window.java loop:
+Java
+// jade/ServerBridge.java
+public class ServerBridge extends Component {
+  Server server = new Server(8081);
+  public void start() {
+    ServletContextHandler ctx = new ServletContextHandler();
+    ctx.addServlet(new ServletHolder(new GameObjectServlet()), "/api/objects");
+    ctx.addServlet(new ServletHolder(new FileSystemGalaxyServlet()), "/api/galaxy");
+    server.setHandler(ctx);
+    server.start();
+  }
+}
+// GET /api/objects → JSON list of GameObjects from Scene
+
+7 lines hidden
+This matches video ECS but exposes it to MERN.
+
+MERN Without Paying (Next.js 14 on VPS, not Vercel):
+Code
+sfa/
+├── app/
+│   ├── layout.tsx (penthouse #0B0B0F #151318)
+│   ├── page.tsx → dashboard artifact
+│   ├── api/
+│   │   ├── ollama/route.ts → proxy to http://localhost:11434/api/chat
+│   │   ├── openclaw/route.ts → proxy to http://localhost:18789
+│   │   ├── java/route.ts → proxy to http://localhost:8081/api/objects
+│   │   ├── upload/route.ts → multer → /opt/sfa/workspace + rclone move to gdrive
+│   │   └── agent/message/route.ts → SSH + POST for Postman
+│   └── editor/route.ts → read/write /opt/sfa/workspace files
+├── components/
+│   ├── Terminal.tsx (xterm.js + node-pty)
+│   ├── NanoEditor.tsx (Monaco, simple like nano, Ctrl+S save)
+│   ├── FileDrop.tsx (drag-drop, link pills #1A2238)
+│   └── RealtimeMonitor.tsx (Socket.IO dispatcher 12ms, coherence 81.25%)
+├── server/
+│   ├── index.js → Express + Socket.IO + ssh2
+│   └── ssh.js → ssh2 client to agent backend
+└── ecosystem.config.js → PM2
+
+15 lines hidden
+npm i -g pm2, pnpm install, pm2 start ecosystem.config.js, Nginx reverse proxy your-domain → localhost:3000, certbot --nginx.
+
+Terminal Window Straight to Ollama Offline:
+TypeScript
+// app/api/ollama/route.ts
+export async function POST(req) {
+  const {model, messages} = await req.json();
+  const res = await fetch('http://localhost:11434/api/chat', {
+    method: 'POST',
+    body: JSON.stringify({model: model||'llama3', messages, stream:false})
+  });
+  return res;
+}
+// Terminal.tsx uses xterm.js: onData -> fetch /api/ollama
+// Model switcher: dropdown llama3/mistral/codellama → state change → pulse glow #C2185B
+
+6 lines hidden
+Nano Editor Shared Volume:
+TypeScript
+// Simple like nano: Monaco with minimap off, line numbers
+// Save → POST /api/editor {path, content} → fs.writeFileSync('/opt/sfa/workspace/'+path)
+// Agent sees via Java ServerBridge FileSystemGalaxyServlet watches /opt/sfa/workspace with chokidar
+// Vice versa: Java writes → Node watcher → Socket.IO emit → editor updates "Agent edited file"
+File Upload/Receiving, Clicking Links:
+Upload: multer to /opt/sfa/workspace/uploads, Socket.IO file:received event → right pane log tail pulse
+Receiving: GET /api/download?file= → agent can fetch
+Links: Frontend renders <a> pills #1A2238, onClick → fetch /api/websearch {url} → logs to websearch tracking + FileSystemGalaxy entropy check
+Real-time Functions & Websearches:
+Socket.IO rooms: dispatcher, coherence, websearch, functions. Each function call from OpenClaw ClawConnector emits function:call {name, args, ts} → dashboard pulse glow 600ms, not spinner.
+Security & SSH/API for Postman:
+Auth: Self-hosted Auth.js with GitHub OAuth (avoids Clerk third-party, respects preference). Alternative: Clerk if you want managed — npm install @clerk/nextjs. Middleware protects all /.
+SSH: ssh2 npm package to speak to agent backend:
+JavaScript
+const {Client} = require('ssh2');
+conn.exec('ollama run llama3 "your message"', (err, stream) => {...})
+API: POST /api/agent/message {text, model} → forwards to Ollama or OpenClaw, returns JSON for Postman. Add x-api-key header check.
+Invariants & Thresholds
+
+CLK=1, BUS_OUT=0xFFFF, SECTORS 128, CHECKSUM 0xffffe957, D=16384, COHERENCE 81.25% must hold in footer every frame
+Vth=0.6180339887 φ⁻¹ for entropy activation, threshold 50.0 → NanoAgent wake
+Offline invariant: internet=0 for Ollama, model files local /usr/share/ollama/.ollama/models
+Auth invariant: No route exposed without JWT, Nginx allow all → proxy_pass only after Auth.js
+Storage invariant: /opt/sfa/workspace ↔️ /mnt/gdrive via rclone sync every 5min, checksum verified ~(sum) & 0xFFFFFFFF
+Open Physics
+
+Which web stack most efficiently wraps Java libraries? Answer: Next.js 14 + embedded Jetty REST (not JNI node-java, which leaks). Alternative MERN with Spring Boot sidecar if you need heavier ECS.
+Will Clerk violate self-hosted preference? Yes — use Auth.js self-hosted unless you need Clerk's UI speed. Decision: Start Auth.js, migrate to Clerk if you hit auth edge cases.
+How to fine-tune Ollama from dashboard? Next stage: ollama create my-model -f Modelfile where Modelfile includes FROM llama3 + SYSTEM from nano editor.
+Fed: True data from your chart AGENT_CHART.md, fraymus_true_data_feeds.json, MarioYoutube ECS GameObject/Component/Transform, LWJGL Window.java red window glClearColor(1,0,0,1), Ollama API localhost:11434, OpenClaw localhost:18789, penthouse palette #0B0B0F #151318 #C2185B ONE max, phi-harmonic ξ(v), conduction Id=k(Vg-Vth)², Hamming popcount XOR, vis-viva v²=μ(2/r-1/a).
