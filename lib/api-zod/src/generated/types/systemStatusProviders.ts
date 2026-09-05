@@ -10,5 +10,6 @@ export type SystemStatusProviders = typeof SystemStatusProviders[keyof typeof Sy
 
 
 export const SystemStatusProviders = {
-  disabled: 'disabled',
+  connected: 'connected',
+  disconnected: 'disconnected',
 } as const;

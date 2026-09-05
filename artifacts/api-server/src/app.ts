@@ -9,10 +9,12 @@ import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
 } from "./middlewares/clerkProxyMiddleware";
+import type { ModelGateway } from "./lib/model-gateway";
 
 export interface AppOptions {
   getUserId?: (req: Request) => string | null;
   dataRoot?: string;
+  modelGateway?: ModelGateway;
 }
 
 export function createApp(options: AppOptions = {}): Express {
@@ -90,7 +92,11 @@ app.use("/api", (req, res, next) => {
   }
   next();
 });
-app.use("/api", router({ getUserId: resolveUserId, dataRoot: options.dataRoot }));
+app.use("/api", router({
+  getUserId: resolveUserId,
+  dataRoot: options.dataRoot,
+  modelGateway: options.modelGateway,
+}));
 
 return app;
 }

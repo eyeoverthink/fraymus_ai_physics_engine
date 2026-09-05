@@ -129,16 +129,49 @@ test("cross-origin requests are rejected before protected route handling", async
   });
 });
 
-test("chat is explicitly disconnected until a provider is configured", async () => {
-  await withServer({ getUserId: () => "user-1" }, async (request) => {
+test("model discovery reports the approved live gateway result", async () => {
+  const modelGateway = {
+    discover: async () => [{
+      id: "ollama",
+      status: "connected",
+      reason: "Discovered from the approved live gateway (ollama).",
+      source: "live",
+    }],
+    chat: async () => {
+      throw new Error("not used");
+    },
+  };
+  await withServer({ getUserId: () => "user-1", modelGateway }, async (request) => {
     const response = await request("/api/models");
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), [
       {
-        id: "gateway",
-        status: "disabled",
-        reason: "No approved live gateway contract is configured.",
+        id: "ollama",
+        status: "connected",
+        reason: "Discovered from the approved live gateway (ollama).",
+        source: "live",
       },
     ]);
+  });
+});
+
+test("model discovery truthfully reports a live gateway outage", async () => {
+  const modelGateway = {
+    discover: async () => {
+      throw new Error("gateway unavailable");
+    },
+    chat: async () => {
+      throw new Error("not used");
+    },
+  };
+  await withServer({ getUserId: () => "user-1", modelGateway }, async (request) => {
+    const response = await request("/api/models");
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), [{
+      id: "gateway",
+      status: "disconnected",
+      reason: "The approved live gateway is currently unreachable.",
+      source: "live",
+    }]);
   });
 });

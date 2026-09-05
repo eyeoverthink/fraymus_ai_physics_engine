@@ -10,6 +10,6 @@ export type ChatResultStatus = typeof ChatResultStatus[keyof typeof ChatResultSt
 
 
 export const ChatResultStatus = {
-  disabled: 'disabled',
-  disconnected: 'disconnected',
+  succeeded: 'succeeded',
+  failed: 'failed',
 } as const;

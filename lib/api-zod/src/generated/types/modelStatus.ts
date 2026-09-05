@@ -5,10 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ModelStatusSource } from './modelStatusSource';
 import type { ModelStatusStatus } from './modelStatusStatus';
 
 export interface ModelStatus {
   id: string;
   status: ModelStatusStatus;
   reason: string;
+  source: ModelStatusSource;
 }

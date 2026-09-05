@@ -14,6 +14,7 @@ import { constants } from "node:fs";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { createModelGateway, type ModelGateway } from "../lib/model-gateway";
 
 const execFileAsync = promisify(execFile);
 const maxBytes = 1024 * 1024;
@@ -21,12 +22,14 @@ const extensions = new Set([".txt", ".md", ".json", ".yaml", ".yml", ".xml", ".j
 export interface SfaRouterOptions {
   getUserId?: (req: Request) => string | null;
   dataRoot?: string;
+  modelGateway?: ModelGateway;
 }
 
 export function createSfaRouter(options: SfaRouterOptions = {}): IRouter {
 const router: IRouter = Router();
 const dataRoot = resolve(options.dataRoot ?? process.env.SFA_DATA_DIR ?? join(process.cwd(), "sfa-data"));
 const resolveUserId = options.getUserId ?? ((req: Request) => getAuth(req).userId);
+const modelGateway = options.modelGateway ?? createModelGateway();
 
 function userId(req: Request): string {
   const id = resolveUserId(req);
@@ -93,20 +96,56 @@ router.get("/session", (req, res): void => {
 router.get("/system/status", async (_req, res): Promise<void> => {
   let database: "connected" | "unavailable" = "connected";
   try { await db.execute(sql`select 1`); } catch { database = "unavailable"; }
-  res.json(GetSystemStatusResponse.parse({ status: database === "connected" ? "ok" : "degraded", database, providers: "disabled" }));
+  let providers: "connected" | "disconnected" = "connected";
+  try { await modelGateway.discover(); } catch { providers = "disconnected"; }
+  res.json(GetSystemStatusResponse.parse({ status: database === "connected" && providers === "connected" ? "ok" : "degraded", database, providers }));
 });
-router.get("/models", (_req, res): void => {
-  res.json(GetModelsResponse.parse([{ id: "gateway", status: "disabled", reason: "No approved live gateway contract is configured." }]));
+router.get("/models", async (req, res): Promise<void> => {
+  try {
+    res.json(GetModelsResponse.parse(await modelGateway.discover()));
+  } catch (err) {
+    req.log.warn({ err }, "Live model discovery failed");
+    res.json(GetModelsResponse.parse([{
+      id: "gateway",
+      status: "disconnected",
+      reason: "The approved live gateway is currently unreachable.",
+      source: "live",
+    }]));
+  }
 });
 router.post("/chat", async (req, res): Promise<void> => {
   const parsed = CreateChatBody.safeParse(req.body);
   if (!parsed.success) { error(res, "Invalid chat request"); return; }
   const id = userId(req);
+  const result = await modelGateway.chat(parsed.data.message);
   try {
-    await db.insert(episodesTable).values({ userId: id, kind: "chat_disabled", metadata: { model: parsed.data.model ?? null } });
-    await db.insert(receiptEventsTable).values({ userId: id, type: "chat_provider_disabled", metadata: {} });
+    await db.transaction(async (tx) => {
+      await tx.insert(episodesTable).values({
+        userId: id,
+        kind: result.status === "succeeded" ? "chat_completed" : "chat_failed",
+        metadata: {
+          trigger: "user_chat",
+          requestedModel: parsed.data.model ?? null,
+          actualModel: result.model ?? null,
+          fallback: result.fallback,
+          source: result.source,
+          outcome: result.status,
+          upstreamStatus: result.upstreamStatus ?? null,
+        },
+      });
+      await tx.insert(receiptEventsTable).values({
+        userId: id,
+        type: result.status === "succeeded" ? "chat_gateway_succeeded" : "chat_gateway_failed",
+        metadata: {
+          actualModel: result.model ?? null,
+          fallback: result.fallback,
+          source: result.source,
+          upstreamStatus: result.upstreamStatus ?? null,
+        },
+      });
+    });
   } catch (err) { req.log.error({ err }, "Could not persist chat receipt"); error(res, "Receipt persistence is unavailable", 503); return; }
-  res.json(CreateChatResponse.parse({ status: "disabled", message: "Chat is disabled because no approved live gateway contract exists." }));
+  res.json(CreateChatResponse.parse(result));
 });
 router.get("/episodes", async (req, res): Promise<void> => {
   try {
@@ -153,7 +192,7 @@ router.post("/terminal/execute", async (req, res): Promise<void> => {
   try {
     let output: string;
     if (operation === "list-files") output = (await listFiles()).map((file) => file.path).join("\n");
-    else if (operation === "status") output = "SFA control plane is running; provider gateway is disabled.";
+    else if (operation === "status") output = "SFA control plane is running; provider gateway status is available from /api/models.";
     else { const command = operation === "maven-version" ? "mvn" : "java"; const args = ["--version"]; const result = await execFileAsync(command, args, { timeout: 5000, maxBuffer: 64 * 1024, windowsHide: true }); output = `${result.stdout}${result.stderr}`.trim(); }
     res.json(ExecuteTerminalOperationResponse.parse({ operation, status: "ok", output }));
   } catch { res.json(ExecuteTerminalOperationResponse.parse({ operation, status: "unavailable", output: "The requested read-only operation is unavailable." })); }

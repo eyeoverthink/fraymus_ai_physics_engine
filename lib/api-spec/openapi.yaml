@@ -212,14 +212,15 @@ components:
       properties:
         status: { type: string, enum: [ok, degraded] }
         database: { type: string, enum: [connected, unavailable] }
-        providers: { type: string, enum: [disabled] }
+        providers: { type: string, enum: [connected, disconnected] }
     ModelStatus:
       type: object
-      required: [id, status, reason]
+      required: [id, status, reason, source]
       properties:
         id: { type: string }
-        status: { type: string, enum: [disabled, disconnected] }
+        status: { type: string, enum: [connected, disconnected] }
         reason: { type: string }
+        source: { type: string, enum: [live] }
     ChatInput:
       type: object
       additionalProperties: false
@@ -229,10 +230,13 @@ components:
         model: { type: string, maxLength: 200 }
     ChatResult:
       type: object
-      required: [status, message]
+      required: [status, message, fallback, source]
       properties:
-        status: { type: string, enum: [disabled, disconnected] }
+        status: { type: string, enum: [succeeded, failed] }
         message: { type: string }
+        model: { type: string }
+        fallback: { type: boolean }
+        source: { type: string, enum: [live] }
     Episode:
       type: object
       required: [id, kind, createdAt]

@@ -35,7 +35,7 @@ export const GetSessionResponse = zod.object({
 export const GetSystemStatusResponse = zod.object({
   "status": zod.enum(['ok', 'degraded']),
   "database": zod.enum(['connected', 'unavailable']),
-  "providers": zod.enum(['disabled'])
+  "providers": zod.enum(['connected', 'disconnected'])
 })
 
 
@@ -44,8 +44,9 @@ export const GetSystemStatusResponse = zod.object({
  */
 export const GetModelsResponseItem = zod.object({
   "id": zod.string(),
-  "status": zod.enum(['disabled', 'disconnected']),
-  "reason": zod.string()
+  "status": zod.enum(['connected', 'disconnected']),
+  "reason": zod.string(),
+  "source": zod.enum(['live'])
 })
 export const GetModelsResponse = zod.array(GetModelsResponseItem)
 
@@ -65,8 +66,11 @@ export const CreateChatBody = zod.object({
 })
 
 export const CreateChatResponse = zod.object({
-  "status": zod.enum(['disabled', 'disconnected']),
-  "message": zod.string()
+  "status": zod.enum(['succeeded', 'failed']),
+  "message": zod.string(),
+  "model": zod.string().optional(),
+  "fallback": zod.boolean(),
+  "source": zod.enum(['live'])
 })
 
 

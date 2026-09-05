@@ -8,6 +8,7 @@
 
 export * from './chatInput';
 export * from './chatResult';
+export * from './chatResultSource';
 export * from './chatResultStatus';
 export * from './ecsStatus';
 export * from './ecsStatusMavenProject';
@@ -20,6 +21,7 @@ export * from './fileContentInput';
 export * from './getFileContentParams';
 export * from './healthStatus';
 export * from './modelStatus';
+export * from './modelStatusSource';
 export * from './modelStatusStatus';
 export * from './receiptEvent';
 export * from './receiptEventMetadata';

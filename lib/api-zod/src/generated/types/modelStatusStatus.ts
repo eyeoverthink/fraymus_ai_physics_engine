@@ -10,6 +10,6 @@ export type ModelStatusStatus = typeof ModelStatusStatus[keyof typeof ModelStatu
 
 
 export const ModelStatusStatus = {
-  disabled: 'disabled',
+  connected: 'connected',
   disconnected: 'disconnected',
 } as const;

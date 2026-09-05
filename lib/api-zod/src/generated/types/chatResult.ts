@@ -5,9 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ChatResultSource } from './chatResultSource';
 import type { ChatResultStatus } from './chatResultStatus';
 
 export interface ChatResult {
   status: ChatResultStatus;
   message: string;
+  model?: string;
+  fallback: boolean;
+  source: ChatResultSource;
 }
