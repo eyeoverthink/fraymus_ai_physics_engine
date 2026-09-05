@@ -21,6 +21,7 @@ async function buildAll() {
         ? {
             "test-app": path.resolve(artifactDir, "src/app.ts"),
             "test-model-gateway": path.resolve(artifactDir, "src/lib/model-gateway.ts"),
+            "test-working-files": path.resolve(artifactDir, "src/lib/working-files.ts"),
           }
         : {}),
     },

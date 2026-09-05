@@ -5,6 +5,70 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface WorkingFileUploadRequest {
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  name: string;
+  /**
+     * @minimum 1
+     * @maximum 10485760
+     */
+  size: number;
+  /**
+     * @minLength 1
+     * @maxLength 127
+     */
+  contentType: string;
+}
+
+export interface WorkingFileUploadUrl {
+  uploadURL: string;
+  objectPath: string;
+  expiresInSeconds: number;
+}
+
+export interface WorkingFileUploadCompletion {
+  /** @pattern ^/objects/uploads/[0-9a-f-]+$ */
+  objectPath: string;
+  /**
+     * @minLength 1
+     * @maxLength 255
+     */
+  name: string;
+  /**
+     * @minimum 1
+     * @maximum 10485760
+     */
+  size: number;
+  /**
+     * @minLength 1
+     * @maxLength 127
+     */
+  contentType: string;
+}
+
+export type WorkingFileParseStatus = typeof WorkingFileParseStatus[keyof typeof WorkingFileParseStatus];
+
+
+export const WorkingFileParseStatus = {
+  parsed: 'parsed',
+  unsupported: 'unsupported',
+  failed: 'failed',
+} as const;
+
+export interface WorkingFile {
+  id: string;
+  name: string;
+  size: number;
+  contentType: string;
+  createdAt: string;
+  parseStatus: WorkingFileParseStatus;
+  /** Bounded text derived from the original bytes; never the original file. */
+  parsedContent?: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
