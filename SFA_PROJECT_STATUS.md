@@ -1,7 +1,7 @@
 # FRAYMUS SFA Project Status
 
 **Updated:** 2026-09-05  
-**Current milestone:** Secure control-plane foundation complete; security regression verification in progress.
+**Current milestone:** Secure control-plane foundation and first security regression pass complete; live gateway integration is next.
 
 ## Repository boundary
 
@@ -60,7 +60,7 @@ Do not push this workspace to the original shared physics-engine repository. The
 
 ### Prove protected controls cannot be reached without permission
 
-This is the active follow-up. It should add focused regression coverage for the security boundaries already implemented:
+This follow-up is implemented and awaiting normal project reconciliation/merge handling. It adds focused regression coverage for the security boundaries already implemented:
 
 1. Every protected route rejects unauthenticated requests.
 2. Forged `Host` and `X-Forwarded-Host` values cannot change Clerk configuration.
@@ -83,6 +83,13 @@ Extend the current safe text workspace with authenticated App Storage uploads/do
 
 The SFA control plane should remain separate from renderer-independent Core work. Existing proposed engine milestones include camera/entity inspection, deterministic physics, golden-check diffs, approved outcome pinning, and framebuffer/debug rendering.
 
+### 4. Continue API hardening
+
+Two additional security/reliability follow-ups are proposed:
+
+- Keep abuse limits consistent when the API runs on multiple servers.
+- Reject undeclared fields in every generated API request.
+
 ## Operating rules for the next session
 
 - Read this file and `FRAYMUS_BUILD_ORDER.md` before changing the engine or SFA architecture.
@@ -91,4 +98,4 @@ The SFA control plane should remain separate from renderer-independent Core work
 - Preserve Episode accountability: trigger → evidence → proposal → human review → outcome → later learning.
 - Do not duplicate the VPS model backend, OpenClaw, Ollama, dispatcher, or SSH infrastructure inside Replit.
 - Do not expose secrets, private model ports, unrestricted shell access, or provider credentials to browser code.
-- Keep moving through the active security task, then the gateway task, then persistent file transfer unless Vaughn changes priority.
+- Reconcile the implemented security task, then move to the live gateway task and protected persistent file transfer unless Vaughn changes priority.
