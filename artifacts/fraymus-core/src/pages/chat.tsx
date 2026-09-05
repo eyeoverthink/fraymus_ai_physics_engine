@@ -8,6 +8,9 @@ type Message = {
   role: 'user' | 'agent';
   content: string;
   timestamp: string;
+  status?: 'succeeded' | 'failed';
+  model?: string;
+  fallback?: boolean;
 };
 
 export default function Chat() {
@@ -21,10 +24,14 @@ export default function Chat() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (models && models.length > 0 && !selectedModel) {
-      setSelectedModel(models[0].id);
+    const connectedModel = models?.find(model => model.status === 'connected');
+    if (connectedModel && !selectedModel) {
+      setSelectedModel(connectedModel.id);
     }
   }, [models, selectedModel]);
+
+  const connectedModels = models?.filter(model => model.status === 'connected') ?? [];
+  const gatewayConnected = connectedModels.length > 0;
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -54,7 +61,10 @@ export default function Chat() {
             id: Date.now().toString(),
             role: 'agent',
             content: res.message,
-            timestamp: new Date().toLocaleTimeString('en-US', { hour12: false })
+             timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }),
+             status: res.status,
+             model: res.model,
+             fallback: res.fallback,
           }]);
         },
         onError: (err) => {
@@ -72,8 +82,8 @@ export default function Chat() {
     <div className="flex flex-col h-full w-full max-w-5xl mx-auto min-h-0 bg-[#0B0B0F] relative">
       <div className="h-[38px] shrink-0 flex items-center justify-between gap-3 px-4 border-b border-white/[0.06] bg-[#151318]/50 backdrop-blur">
         <div className="flex items-center gap-2 mono text-[11px] text-zinc-400">
-          <span className="h-2 w-2 rounded-full bg-[#C2185B] shadow-[0_0_8px_rgba(194,24,91,0.6)] animate-pulseGlow" />
-          <span className="tracking-[0.08em] uppercase">AGENT</span>
+          <span className={`h-2 w-2 rounded-full ${gatewayConnected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]' : 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]'}`} />
+          <span className="tracking-[0.08em] uppercase">{gatewayConnected ? 'LIVE GATEWAY' : 'GATEWAY UNAVAILABLE'}</span>
           <span className="text-zinc-600">/</span>
           <span className="text-zinc-300">CHAT</span>
         </div>
@@ -86,10 +96,10 @@ export default function Chat() {
             className="appearance-none bg-[#0B0B0F] border border-white/[0.08] rounded-full px-3 py-0.5 pr-7 mono text-[10px] text-emerald-300 focus:outline-none focus:border-[#C2185B]/50 uppercase tracking-widest"
             data-testid="select-model"
           >
-            {models?.map(m => (
+            {connectedModels.map(m => (
               <option key={m.id} value={m.id}>{m.id}</option>
             ))}
-            {!models?.length && <option value="">offline</option>}
+            {!gatewayConnected && <option value="">offline</option>}
           </select>
         </div>
       </div>
@@ -123,6 +133,15 @@ export default function Chat() {
                 </pre>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="mono text-[10px] text-zinc-500 tracking-widest">{msg.timestamp}</span>
+                  {msg.role === 'agent' && msg.model && (
+                    <span className="mono text-[10px] text-emerald-400 uppercase tracking-widest">live · {msg.model}</span>
+                  )}
+                  {msg.role === 'agent' && msg.fallback && (
+                    <span className="mono text-[10px] text-amber-400 uppercase tracking-widest">fallback</span>
+                  )}
+                  {msg.role === 'agent' && msg.status === 'failed' && (
+                    <span className="mono text-[10px] text-red-400 uppercase tracking-widest">failed</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -138,14 +157,14 @@ export default function Chat() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="send instruction to agent..."
+          placeholder={gatewayConnected ? "send instruction to live model..." : "live model gateway unavailable"}
           className="flex-1 bg-transparent outline-none mono text-[13px] text-zinc-100 placeholder:text-zinc-600"
-          disabled={createChat.isPending}
+          disabled={createChat.isPending || !gatewayConnected}
           data-testid="input-chat"
         />
         <button 
           type="submit" 
-          disabled={!input.trim() || createChat.isPending}
+          disabled={!input.trim() || createChat.isPending || !gatewayConnected}
           className="h-7 w-7 flex items-center justify-center rounded bg-[#1A2238] border border-white/[0.08] text-zinc-300 disabled:opacity-50 hover:bg-[#1A2238]/80 transition"
           data-testid="button-chat-submit"
         >

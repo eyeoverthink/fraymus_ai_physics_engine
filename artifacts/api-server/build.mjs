@@ -18,7 +18,10 @@ async function buildAll() {
     entryPoints: {
       index: path.resolve(artifactDir, "src/index.ts"),
       ...(process.env.BUILD_TEST_APP === "1"
-        ? { "test-app": path.resolve(artifactDir, "src/app.ts") }
+        ? {
+            "test-app": path.resolve(artifactDir, "src/app.ts"),
+            "test-model-gateway": path.resolve(artifactDir, "src/lib/model-gateway.ts"),
+          }
         : {}),
     },
     platform: "node",

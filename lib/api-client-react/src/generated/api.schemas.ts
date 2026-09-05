@@ -35,7 +35,8 @@ export type SystemStatusProviders = typeof SystemStatusProviders[keyof typeof Sy
 
 
 export const SystemStatusProviders = {
-  disabled: 'disabled',
+  connected: 'connected',
+  disconnected: 'disconnected',
 } as const;
 
 export interface SystemStatus {
@@ -48,14 +49,22 @@ export type ModelStatusStatus = typeof ModelStatusStatus[keyof typeof ModelStatu
 
 
 export const ModelStatusStatus = {
-  disabled: 'disabled',
+  connected: 'connected',
   disconnected: 'disconnected',
+} as const;
+
+export type ModelStatusSource = typeof ModelStatusSource[keyof typeof ModelStatusSource];
+
+
+export const ModelStatusSource = {
+  live: 'live',
 } as const;
 
 export interface ModelStatus {
   id: string;
   status: ModelStatusStatus;
   reason: string;
+  source: ModelStatusSource;
 }
 
 export interface ChatInput {
@@ -72,13 +81,23 @@ export type ChatResultStatus = typeof ChatResultStatus[keyof typeof ChatResultSt
 
 
 export const ChatResultStatus = {
-  disabled: 'disabled',
-  disconnected: 'disconnected',
+  succeeded: 'succeeded',
+  failed: 'failed',
+} as const;
+
+export type ChatResultSource = typeof ChatResultSource[keyof typeof ChatResultSource];
+
+
+export const ChatResultSource = {
+  live: 'live',
 } as const;
 
 export interface ChatResult {
   status: ChatResultStatus;
   message: string;
+  model?: string;
+  fallback: boolean;
+  source: ChatResultSource;
 }
 
 export type EpisodeMetadata = { [key: string]: unknown };
