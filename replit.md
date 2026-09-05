@@ -15,6 +15,9 @@ but do not make OpenGL, GLFW, GLSL, LWJGL, or ImGui dependencies of Core.
 ```sh
 mvn clean package
 java -jar target/fraymus-ai-physics-engine-0.1.0-SNAPSHOT.jar --headless
+
+# On a machine with a graphical desktop:
+java -jar target/fraymus-ai-physics-engine-0.1.0-SNAPSHOT.jar --desktop
 ```
 
 To run an exact number of deterministic fixed steps:

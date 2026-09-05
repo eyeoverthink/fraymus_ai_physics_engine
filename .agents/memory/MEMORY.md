@@ -1,0 +1,1 @@
+- [SFA repository boundary](sfa-repository-boundary.md) — the multi-app SFA workspace belongs in its own private repository, never the shared original engine repository.
