@@ -1,0 +1,3 @@
+- [SFA repository boundary](sfa-repository-boundary.md) — the multi-app SFA workspace belongs in its own private repository, never the shared original engine repository.
+- [GitHub publishing path](github-publishing-path.md) — publish the SFA through the authorized GitHub integration when direct Git credentials are unavailable.
+- [Validated upload promotion](validated-upload-promotion.md) — never serve a validated presigned-upload object directly; promote verified bytes to a server-controlled final object.
