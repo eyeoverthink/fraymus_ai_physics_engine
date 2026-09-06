@@ -49,6 +49,11 @@
               <mainClass>fraymus.app.FraymusApplication</mainClass>
             </manifest>
           </archive>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <mainClass>fraymus.app.Main</mainClass>
         </configuration>
       </plugin>
     </plugins>
